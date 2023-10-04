@@ -16,8 +16,9 @@ import java.util.Collections;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:4200")
 @RequestMapping("/api/tasks")
-public class TaskController {
+public class TaskControllerAPI {
 
     @Autowired
     private TaskRepository taskRepository;
@@ -27,9 +28,34 @@ public class TaskController {
 
 
     @GetMapping
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+    public List<Task> getAllTasks(
+            @RequestParam(required = false) String by,
+            @RequestParam(defaultValue = "asc") String order,
+            @RequestParam(defaultValue = "true") boolean completed
+    ) {
+        if (by == null) {
+            return taskRepository.findAll();
+        }
+
+        List<Task> sortedTasks;
+
+        switch (by) {
+            case "dueDate":
+                sortedTasks = taskService.sortedBy(order, "dueDate");
+                break;
+            case "title":
+                sortedTasks = taskService.sortedBy(order, "title");
+                break;
+            case "status":
+                sortedTasks = taskService.filterByCompletion(completed);
+                break;
+            default:
+                return Collections.emptyList();
+        }
+
+        return sortedTasks;
     }
+
 
     @GetMapping("/{taskId}")
     public Task getTaskById(@PathVariable Long taskId) {
@@ -63,7 +89,7 @@ public class TaskController {
 
 
     @DeleteMapping("/{taskId}")
-    public ResponseEntity<String> deleteTask(@PathVariable Long taskId) {
+    public ResponseEntity<?> deleteTask(@PathVariable Long taskId) {
         try {
             if (!taskRepository.existsById(taskId)) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Task not found");
@@ -71,7 +97,7 @@ public class TaskController {
 
             taskRepository.deleteById(taskId);
 
-            return ResponseEntity.status(HttpStatus.OK).body("Task Deleted");
+            return ResponseEntity.ok("");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete task");
         }
@@ -88,43 +114,13 @@ public class TaskController {
         List<User> assignedUsers = taskService.getAssignedUsersForTask(taskId);
         return ResponseEntity.ok(assignedUsers);
     }
-
     @DeleteMapping("/{taskId}/remove/{userId}")
     public ResponseEntity<?> removeUserFromTask(@PathVariable Long taskId, @PathVariable Long userId) {
         taskService.removeUserFromTask(taskId, userId);
-        return ResponseEntity.ok("User removed from the task successfully");
+        return ResponseEntity.ok("");
     }
 
-    @GetMapping("/sorted")
-    public ResponseEntity<List<Task>> getTasksSortedByDueDate(
-            @RequestParam(required = true) String by,
-            @RequestParam(defaultValue = "asc") String order,
-            @RequestParam(defaultValue= "true") boolean completed,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        List<Task> sortedTasks;
-//        Page<Task> paginatedTasks;
 
-        switch (by) {
-            case "dueDate":
-                sortedTasks = taskService.sortedByDueDate(order);
-                break;
-            case "title":
-                sortedTasks = taskService.sortedByTitle(order);
-                break;
-            case "completed":
-                sortedTasks=taskService.filterByCompletion(completed);
-                break;
-//            case "pagination":
-//                paginatedTasks= taskService.paginatedTasks(page, size);
-//                break;
-            default:
-                return ResponseEntity.badRequest().body(Collections.emptyList());
-        }
-
-            return ResponseEntity.ok(sortedTasks);
-    }
     @GetMapping("/duedate")
     public ResponseEntity<List<Task>> getTasksFilteredByDueDate(
             @RequestParam  LocalDate from,

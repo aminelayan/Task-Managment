@@ -2,88 +2,85 @@ package com.example.intern.Controller;
 
 import com.example.intern.Models.User;
 import com.example.intern.Repository.UserRepository;
-import com.example.intern.Service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.annotation.Validated;
+import jakarta.validation.Valid;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.validation.Valid;
-import java.util.List;
-
-@RestController
-@RequestMapping("/api/users")
-
+@Controller
+@RequestMapping("/users")
 public class UserController {
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private UserService userService;
 
     @GetMapping
-    public List<User> getAllUsers(){
-        return userRepository.findAll();
+    public String getAllUsers(Model model) {
+        model.addAttribute("users", userRepository.findAll());
+        return "user-list";
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getUserByID(@PathVariable Long userId) {
-        try {
-            User user = userRepository.findById(userId).orElse(null);
-            if (user == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User Not Found");
-            }
-            return ResponseEntity.ok(user);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to Get the User");
-        }
+    public String getUserDetails(@PathVariable Long userId, Model model) {
+        User user = userRepository.findById(userId).orElse(null);
+        model.addAttribute("user", user);
+        return "user-details";
     }
-
+    @GetMapping("/create")
+    public String showCreateUserForm(Model model) {
+        model.addAttribute("newUser", new User());
+        return "create-user";
+    }
     @PostMapping
-    public ResponseEntity<?> createUser(@Valid @RequestBody User newUser) {
+    public String createUser(@Valid @ModelAttribute("newUser") User newUser) {
         try {
-            User usercreated = userRepository.save(newUser);
-            return ResponseEntity.status(HttpStatus.CREATED).body(usercreated);
+            User userCreated = userRepository.save(newUser);
+            // You can optionally redirect to the user details page or any other page after successful creation.
+            return "redirect:/users/" + userCreated.getId();
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to Create New User");
+            // Handle the error and display a message if needed
+            return "create-user"; // Return to the create user form with an error message
         }
     }
+    @GetMapping("/{userId}/edit")
+    public String showUpdateUserForm(@Valid @PathVariable Long userId, Model model) {
+        User user = userRepository.findById(userId).orElse(null);
+        model.addAttribute("updatedUser", user);
+        return "update-user";
+    }
 
-    @PutMapping("/{userId}")
-    public ResponseEntity<?> updateUser(@Valid @PathVariable Long userId,@RequestBody User updateduser){
-        try{
-            if(!userRepository.existsById(userId)){
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User Not Found");
+    @PostMapping("/{userId}")
+    public String updateUser(
+            @PathVariable Long userId,
+            @Valid @ModelAttribute("updatedUser") User updatedUser
+    ) {
+        try {
+            if (!userRepository.existsById(userId)) {
+                return "redirect:/users";
             }
-            updateduser.setId(userId);
-            User updateUser = userRepository.save(updateduser);
-            return ResponseEntity.ok(updateUser);
+            updatedUser.setId(userId);
+            userRepository.save(updatedUser);
+            return "redirect:/users/" + userId ;
+        } catch (Exception e) {
+            return "update-user";
         }
-        catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to Update The User");
-        }
+    }
+    @GetMapping("/{userId}/delete")
+    public String showDeleteUserConfirmation(@PathVariable Long userId, Model model) {
+        User user = userRepository.findById(userId).orElse(null);
+        model.addAttribute("user", user);
+        return "delete-user";
     }
     @DeleteMapping("/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long userId){
-        try{
-            if(!userRepository.existsById(userId)){
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User Not Found");
+    public String deleteUser(@PathVariable Long userId) {
+        try {
+            if (!userRepository.existsById(userId)) {
+                return "redirect:/users";
             }
             userRepository.deleteById(userId);
-            return ResponseEntity.status(HttpStatus.OK).body("User has Been Removed");
-        }
-        catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to Delete The User");
+            return "redirect:/users";
+        } catch (Exception e) {
+            return "delete-user";
         }
     }
-    @GetMapping("/search")
-    public ResponseEntity<List<User>> searchUsers(@RequestParam(required = true) String searchTerm){
-        List<User> searchResult = userService.searchOnName(searchTerm);
-        if (searchResult.isEmpty()){
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(searchResult);
-    }
-
 }

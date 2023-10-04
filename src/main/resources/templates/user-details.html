@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Details</title>
+</head>
+<body>
+<h1>User Details</h1>
+<table>
+  <tr>
+    <th>ID:</th>
+    <td th:text="${user.id}"></td>
+  </tr>
+  <tr>
+    <th>Name:</th>
+    <td th:text="${user.firstName}"></td>
+  </tr>
+  <tr>
+    <th>Name:</th>
+    <td th:text="${user.lastName}"></td>
+  </tr>
+  <tr>
+    <th>Email:</th>
+    <td th:text="${user.email}"></td>
+  </tr>
+</table>
+<a th:href="@{'/users/' + ${user.id} + '/edit'}">Edit User</a>
+<a th:href="@{'/users'}">All User</a>
+<a th:href="@{'/users/' + ${user.id} + '/delete'}">Delete User</a>
+</body>
+</html>

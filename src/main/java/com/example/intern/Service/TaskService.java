@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskService  {
@@ -61,24 +63,13 @@ public class TaskService  {
         task.getAssignedUsers().remove(user);
         taskRepository.save(task);
     }
-    public List<Task> sortedByDueDate(String sortOrder) {
-        Sort.Direction direction = Sort.Direction.ASC; // Default to ascending order
+    public List<Task> sortedBy(String sortOrder,String properties) {
+        Sort.Direction direction = Sort.Direction.ASC;
 
         if ("desc".equalsIgnoreCase(sortOrder)) {
             direction = Sort.Direction.DESC;
         }
-
-        return taskRepository.findAll(Sort.by(direction, "dueDate"));
-    }
-
-    public List<Task> sortedByTitle(String sortOrder) {
-        Sort.Direction direction = Sort.Direction.ASC; // Default to ascending order
-
-        if ("desc".equalsIgnoreCase(sortOrder)) {
-            direction = Sort.Direction.DESC;
-        }
-        // Fetch tasks sorted by title
-        return taskRepository.findAll(Sort.by(direction,"title"));
+        return taskRepository.findAll(Sort.by(direction,properties));
     }
     public List<Task> filterByDueDate(LocalDate fromDate, LocalDate toDate) {
         return taskRepository.findByDueDateBetween(fromDate, toDate);
@@ -93,7 +84,7 @@ public class TaskService  {
         return taskRepository.findAll(pageable);
     }
     public List<Task> searchByTerm(String searchTerm){
-        return taskRepository.findByTitleContainingOrDescriptionContaining(searchTerm,searchTerm);
+        return taskRepository.findByUserFirstNameOrUserLastName(searchTerm,searchTerm);
     }
 
 
